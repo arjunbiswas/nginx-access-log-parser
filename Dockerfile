@@ -10,8 +10,8 @@ COPY main.py ./opt/
 # Now the structure looks like this '/opt/main.py'
 
 
+
 #CMD instruction should be used to run the software
 #contained by your image, along with any arguments.
 
 CMD [ "python", "./main.py"]
-
