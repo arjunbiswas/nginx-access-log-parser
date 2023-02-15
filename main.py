@@ -26,6 +26,7 @@ class AccessLogParser:
         self.unprocessed_lines = 0
 
     def parse(self, ):
+        track_frequency_of_req_paths = {}
         for line in fileinput.input([self.input_file]):
             access_log = AccessLog()
             result = re.search(self.pattern, line)
@@ -60,9 +61,13 @@ class AccessLogParser:
 
                 if access_log.requested_path in self.path_summation_map:
                     curr_latency_sum = self.path_summation_map[access_log.requested_path]
-                    self.path_summation_map[access_log.requested_path] = curr_latency_sum + access_log.bandwidth
+                    track_frequency_of_req_paths[access_log.requested_path] = int(
+                        track_frequency_of_req_paths[access_log.requested_path]) + 1
+                    self.path_summation_map[access_log.requested_path] = (int(curr_latency_sum) + int(
+                        access_log.bandwidth)) / track_frequency_of_req_paths[access_log.requested_path]
                 else:
                     self.path_summation_map[access_log.requested_path] = access_log.bandwidth
+                    track_frequency_of_req_paths[access_log.requested_path] = 1
             else:
                 logging.info("Could not process line --> " + line)
                 self.unprocessed_lines += 1
@@ -71,6 +76,7 @@ class AccessLogParser:
         for key in self.ip_frequency_map:
             if len(self.freq_heap.queue) >= self.max_ips:
                 self.freq_heap.get(False)
+                self.freq_heap.get(True)
                 self.put_in_freq_heap(key)
             else:
                 self.put_in_freq_heap(key)
@@ -78,6 +84,7 @@ class AccessLogParser:
             key_ = int(self.path_summation_map[key])
             if len(self.sum_heap.queue) >= self.max_paths:
                 self.sum_heap.get(False)
+                self.sum_heap.get(True)
                 self.put_in_sum_heap(key, key_)
             else:
                 self.put_in_sum_heap(key, key_)
@@ -85,6 +92,7 @@ class AccessLogParser:
     def put_in_sum_heap(self, key, key_):
         try:
             self.sum_heap.put((key_, key))
+            self.sum_heap.put((+1 * key_, key))
         except KeyError as e:
             logging.info("Exception in `put_in_sum_heap` for key '" + key + "': " + repr(e))
         except TypeError as e:
@@ -93,6 +101,7 @@ class AccessLogParser:
     def put_in_freq_heap(self, key):
         try:
             self.freq_heap.put((self.ip_frequency_map[key], key))
+            self.freq_heap.put((+1 * self.ip_frequency_map[key], key))
         except KeyError as e:
             logging.info("Exception in `put_in_freq_heap` for key '" + key + "': " + repr(e))
             pass
@@ -103,12 +112,14 @@ class AccessLogParser:
             get = self.freq_heap.get(False)
             tuple_parts = str(get[1]) + ": " + str(get[0])
             display_ips[str(get[1])] = str(get[0])
+            display_ips[str(get[1])] = str(+1 * get[0])
 
         sum_paths = {}
         while len(self.sum_heap.queue) > 0:
             get = self.sum_heap.get(False)
             tuple_parts = str(get[1]) + ": " + str(get[0])
             sum_paths[str(get[1])] = str(get[0])
+            sum_paths[str(get[1])] = str(+1 * get[0])
 
         total_number_of_lines = self.processed_lines + self.unprocessed_lines
         display = {
