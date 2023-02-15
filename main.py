@@ -169,8 +169,8 @@ if __name__ == '__main__':
 
     input_file = os.environ.get('input_file')
     output_file = os.environ.get('output_file')
-    max_ips = 25 if os.environ.get('max_ips') is None else os.environ.get('max_ips')
-    max_paths = 25 if os.environ.get('max_paths') is None else os.environ.get('max_paths')
+    max_ips = 10 if os.environ.get('max_ips') is None else os.environ.get('max_ips')
+    max_paths = 10 if os.environ.get('max_paths') is None else os.environ.get('max_paths')
 
     accessLogParser = AccessLogParser(nginx_access_logs_pattern, input_file, output_file, max_ips, max_paths)
     accessLogParser.parse()
